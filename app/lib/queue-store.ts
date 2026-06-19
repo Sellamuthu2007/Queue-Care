@@ -75,7 +75,10 @@ export function addPatient(name: string): Patient {
   return patient;
 }
 
-export function nextPatient(): { movedOut: Patient | null; movedIn: Patient | null } {
+export function nextPatient(): {
+  movedOut: Patient | null;
+  movedIn: Patient | null;
+} {
   const queue = loadQueue();
   let movedOut: Patient | null = null;
   let movedIn: Patient | null = null;
