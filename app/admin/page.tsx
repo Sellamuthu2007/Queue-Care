@@ -1,25 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styles from "@/styles/receptionist.module.css";
-import { getQueue, getAverageDuration, addPatient, nextPatient, subscribe, type Patient } from "@/app/lib/queue-store";
+import { useQueue } from "@/app/lib/use-queue";
 import { formatEstTime } from "@/app/lib/time";
+import type { PatientRow } from "@/app/lib/database.types";
 
 export default function AdminPage() {
   const [name, setName] = useState("");
-  const [patients, setPatients] = useState<Patient[]>(getQueue());
-  const [avgDuration, setAvgDuration] = useState(getAverageDuration());
-  const [notification, setNotification] = useState<Patient | null>(null);
+  const { patients, avgDuration, addPatient, nextPatient } = useQueue();
+  const [notification, setNotification] = useState<PatientRow | null>(null);
 
-  useEffect(() => subscribe(() => {
-    setPatients(getQueue());
-    setAvgDuration(getAverageDuration());
-  }), []);
-
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name.trim()) return;
-    const patient = addPatient(name.trim());
-    setNotification(patient);
+    const patient = await addPatient(name.trim());
+    if (patient) setNotification(patient);
     setName("");
     setTimeout(() => setNotification(null), 3000);
   };
@@ -28,9 +23,11 @@ export default function AdminPage() {
     nextPatient();
   };
 
-  const current = patients.find((p) => p.status === "withDoctor");
+  const current = patients.find((p) => p.status === "withDoctor") ?? null;
   const waiting = patients.filter((p) => p.status === "waiting");
-  const baseTime = current?.startedAt;
+  const baseTime = current?.started_at
+    ? new Date(current.started_at).getTime()
+    : undefined;
 
   return (
     <div className={styles.container}>
@@ -63,7 +60,7 @@ export default function AdminPage() {
             </thead>
             <tbody>
               <tr>
-                <td>{current.tokenNumber}</td>
+                <td>{current.token_number}</td>
                 <td>{current.name}</td>
               </tr>
             </tbody>
@@ -77,9 +74,7 @@ export default function AdminPage() {
 
       {waiting.length > 0 && (
         <div className={styles.panel}>
-          <h2 className={styles.panelTitle}>
-            Queue ({waiting.length})
-          </h2>
+          <h2 className={styles.panelTitle}>Queue ({waiting.length})</h2>
           <table className={styles.queueTable}>
             <thead>
               <tr>
@@ -91,7 +86,7 @@ export default function AdminPage() {
             <tbody>
               {waiting.map((p, i) => (
                 <tr key={p.id}>
-                  <td>{p.tokenNumber}</td>
+                  <td>{p.token_number}</td>
                   <td>{p.name}</td>
                   <td className={styles.estTimeCell}>
                     ~{formatEstTime(baseTime, i, avgDuration)}
@@ -106,8 +101,12 @@ export default function AdminPage() {
       {notification && (
         <div className={styles.notification}>
           <p className={styles.notificationText}>
-            Patient <span className={styles.notificationBold}>{notification.name}</span> added — Token{" "}
-            <span className={styles.notificationBold}>#{notification.tokenNumber}</span>
+            Patient{" "}
+            <span className={styles.notificationBold}>{notification.name}</span>{" "}
+            added — Token{" "}
+            <span className={styles.notificationBold}>
+              #{notification.token_number}
+            </span>
           </p>
         </div>
       )}

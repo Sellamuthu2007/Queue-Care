@@ -5,13 +5,15 @@ function cumulativeMins(position: number, avgDuration: number): number {
   if (position < STATIC_COUNT) {
     return (position + 1) * STATIC_MIN;
   }
-  return STATIC_COUNT * STATIC_MIN + (position - STATIC_COUNT + 1) * avgDuration;
+  return (
+    STATIC_COUNT * STATIC_MIN + (position - STATIC_COUNT + 1) * avgDuration
+  );
 }
 
 export function formatEstTime(
   from: number | undefined,
   position: number,
-  avgDuration: number
+  avgDuration: number,
 ): string {
   const base = from ?? Date.now();
   const mins = cumulativeMins(position, avgDuration);
